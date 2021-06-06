@@ -1,20 +1,15 @@
 from flask import Flask, render_template ,request, send_from_directory,Response,redirect,url_for,flash
 import cv2
 import os
-import sys
 import datetime
 from flask import jsonify
 import time
 import requests
 import fitz
-import json
 import re
 import scipy.misc
 import warnings
 from werkzeug.utils import secure_filename
-import webbrowser
-import numpy
-import gdown
 from deepface import DeepFace
 import matplotlib.pyplot as plt
 
@@ -49,6 +44,7 @@ class User(UserMixin, db.Model):
         password = db.Column(db.String(80))
         fname = db.Column(db.String(1000))
         lname = db.Column(db.String(1000))
+	status = db.Column(db.String(50), default="Not Verified")
         print("User created")
     except:
         print("User not created")
@@ -130,13 +126,13 @@ def created():
 @app.route('/profile')
 @login_required
 def profile():
-    f=open(app.config["IMAGE_UPLOADS"]+'comparison_result.txt','r')
-    st=f.read()
-    stat='Not Verified'
-    if st=='1':
-        stat='Verified'
-    print('status : ',stat)
-    return render_template('profile.html',status=stat,password='******',fname=current_user.fname,lname=current_user.lname,uname=current_user.username,email=current_user.email)
+    #f=open(app.config["IMAGE_UPLOADS"]+'comparison_result.txt','r')
+    #st=f.read()
+    #stat='Not Verified'
+    #if st=='1':
+    #    stat='Verified'
+    #print('status : ',stat)
+    return render_template('profile.html',status=current_user.status,password='******',fname=current_user.fname,lname=current_user.lname,uname=current_user.username,email=current_user.email)
 
 #-----------Steps Routes-------------------
 @app.route('/stp1')
@@ -290,9 +286,8 @@ def formDirectImg(filename,dirname):
 
 
 
-#-----------Live Video Image Picker ----------------------------------------------------
-@app.route('/opencamera',methods=['GET','POST'])    
 #-------------------------------CAM SCREENSHOT CODE------------------------------------
+@app.route('/opencamera',methods=['GET','POST'])    
 def camera():
     dirname=request.form['dirname']
     t=int(1500)
@@ -326,30 +321,7 @@ def camera():
     return redirect(url_for('stp3'))
 
 #------------- Compare Images ------------------------
-'''
-def compare(dirname):
-    #surl="http://localhost:8000/api/v1/compare_faces"
-    print('Compare')
-    global count1
-    print(count1)
-    for j in range(2):
-        print('Path1 '+str(j))
-        path1=f'D:\PROJECT_AND_CODES\KYC_VERIFICATION\\imgdatabase{dirname}\\Dataset\\cam'+str(j)+'.jpeg'
-        for i in range(0,count1):
-            print('Path2 '+str(i))
-            path2=f'D:\PROJECT_AND_CODES\KYC_VERIFICATION\\imgdatabase{dirname}\\Dataset\\face'+str(i)+'.jpg'
-            print('Comparing imagege cam'+str(j)+' & face'+str(i))
-            result = DeepFace.verify(img1_path =path1,img2_path =path2, model_name = "VGG-Face", distance_metric = "cosine")
-            threshold = 0.30 #threshold for VGG-Face and Cosine Similarity
-            print("Is verified: ", result["verified"])
-            f=open('D:\PROJECT_AND_CODES\KYC_VERIFICATION\\comparison_result.txt','w+')
-            if result["verified"] == True:
-                f.write('1')
-                return ''
-            else:
-                f.write('0')
-    return ''
-'''
+
 def compare(dirname):
     #surl="http://localhost:8000/api/v1/compare_faces"
     print('Compare')
@@ -363,16 +335,13 @@ def compare(dirname):
             try:
                 path2=f'D:\PROJECT_AND_CODES\KYC_VERIFICATION\\imgdatabase{dirname}\\Dataset\\face'+str(i)+'.jpg'
                 print('Comparing image cam'+str(j)+' & face'+str(i))
-
-                #df = DeepFace.find(img_path = path2, db_path = "C:/workspace/my_db", distance_metric = "cosine")
-                #df=DeepFace.detectFace(path2, detector_backend = 'opencv')
-                #print(df)
                 result = DeepFace.verify(img1_path =path1,img2_path =path2, model_name = "VGG-Face", distance_metric = "cosine")
                 threshold = 0.30 #threshold for VGG-Face and Cosine Similarity
                 print("Is verified: ", result["verified"])
                 f=open('D:\PROJECT_AND_CODES\KYC_VERIFICATION\\comparison_result.txt','w+')
                 if result["verified"] == True:
                     f.write('1')
+		    current_user.status="Verified"
                     return ''
                 else:
                     f.write('0')
